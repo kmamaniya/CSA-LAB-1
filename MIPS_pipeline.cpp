@@ -31,6 +31,7 @@ struct EXStruct {
     bool        nop = true;  
 };
 
+
 struct MEMStruct {
     bitset<32>  ALUresult=0;
     bitset<32>  Store_data=0;
@@ -263,8 +264,8 @@ int decodeType(bitset<32> instr){
 
 //---------------------------------------------------------------------
 
-long signExtention(bitset<16> Imm){
-	if(Imm[0]==1){
+unsigned long signExtention(bitset<16> Imm){
+	if(Imm[15]==true){
 		return (Imm.to_ulong()+0xFFFF0000);
 	}	
 	else return Imm.to_ulong();
@@ -280,8 +281,8 @@ int main()
     int cycle=0;         
     while (1) {
 
-        if (state.IF.nop && state.ID.nop && state.EX.nop && state.MEM.nop && state.WB.nop)
-            break;
+    if (state.IF.nop && state.ID.nop && state.EX.nop && state.MEM.nop && state.WB.nop)
+    	break;
 
         /* --------------------- WB stage --------------------- */
 	if(state.WB.nop==false){
@@ -293,9 +294,9 @@ int main()
 
 
         /* --------------------- MEM stage --------------------- */
-      	if(state.MEM.nop==false){
+    if(state.MEM.nop==false){
 		newState.WB.wrt_enable = state.MEM.wrt_enable;
-		newState.WB.nop=false;
+		newState.WB.nop=state.MEM.nop;
 		newState.WB.Wrt_reg_addr = state.MEM.Wrt_reg_addr;
 
 		newState.WB.Rs = state.MEM.Rs;
@@ -304,7 +305,11 @@ int main()
 		
 		//--------- I - Type -------------------
 		newState.WB.Wrt_data = state.MEM.ALUresult;	
-
+		if((state.WB.wrt_enable == true) && (state.MEM.Rt == state.WB.Wrt_reg_addr) && state.WB.nop==false){			// SW-LW
+				//newState.MEM.Store_data = newState.WB.Wrt_data;				
+				state.MEM.Store_data = state.WB.Wrt_data;	
+				cout<<"\t\tSW MEM to MEM"<<endl;
+			}
 
 		//------- LW -------------------
 		if(state.MEM.rd_mem == true){
@@ -324,8 +329,8 @@ int main()
 
 
         /* --------------------- EX stage --------------------- */
-     	if(state.EX.nop==false){
-		newState.MEM.nop=false;
+    if(state.EX.nop==false){
+		newState.MEM.nop=state.EX.nop;
 		newState.MEM.wrt_enable = state.EX.wrt_enable;
 		newState.MEM.Rs = state.EX.Rs;
 		newState.MEM.Rt = state.EX.Rt;
@@ -335,30 +340,60 @@ int main()
 		newState.MEM.rd_mem = state.EX.rd_mem;
 		//cout<<"EX"<<endl;
 		if(state.EX.is_I_type == false){
-			newState.MEM.Store_data = state.EX.Read_data2;
-			if(state.EX.Rs == state.WB.Wrt_reg_addr)
-				state.EX.Read_data1 = state.WB.Wrt_data;
-			else if(state.EX.Rt == state.WB.Wrt_reg_addr)
-				state.EX.Read_data2 = state.WB.Wrt_data;
-			if(state.EX.Rs == state.MEM.Wrt_reg_addr)
-				state.EX.Read_data1 = state.MEM.ALUresult;
-			else if(state.EX.Rt == state.MEM.Wrt_reg_addr)
-				state.EX.Read_data2 = state.MEM.ALUresult;
-					
+				
+			if((state.WB.wrt_enable == true)&&(state.WB.nop==false)){
+				if(state.EX.Rs == state.WB.Wrt_reg_addr){	
+						state.EX.Read_data1 = state.WB.Wrt_data;
+						cout<<"\t\tADD - MEM to EX"<<endl;
+				}
+				if(state.EX.Rt == state.WB.Wrt_reg_addr){
+						state.EX.Read_data2 = state.WB.Wrt_data;
+						cout<<"\t\tADD - MEM to EX"<<endl;
+				}
+			}	
+			
+			if((state.MEM.wrt_enable == true)&&(state.MEM.nop==false)){
+				if(state.EX.Rt == state.MEM.Wrt_reg_addr){
+					state.EX.Read_data2 = state.MEM.ALUresult;
+					cout<<"\t\tADD - EX to EX"<<endl;
+				}
+				
+				if(state.EX.Rs == state.MEM.Wrt_reg_addr){
+					state.EX.Read_data1 = state.MEM.ALUresult;
+					cout<<"\t\tADD - EX to EX"<<endl;
+				}		
+				
+			}
+
+
 			if(state.EX.alu_op==true)
 				newState.MEM.ALUresult = state.EX.Read_data1.to_ulong() + state.EX.Read_data2.to_ulong();
 			else newState.MEM.ALUresult = state.EX.Read_data1.to_ulong() - state.EX.Read_data2.to_ulong();
-		}			
+			newState.MEM.Store_data = state.EX.Read_data2;
+		}	
+
+
 		else{
 			newState.MEM.Store_data = state.EX.Read_data2;
-			if(state.EX.Rs == state.WB.Wrt_reg_addr)					///////////////////////////////
-				state.EX.Read_data1 = state.WB.Wrt_data;				///////////////////////////////
-			if(state.EX.Rs == state.MEM.Wrt_reg_addr)					////////////////////////////////
-				state.EX.Read_data1 = state.MEM.ALUresult;				//////////////////////////////
-			if(state.MEM.rd_mem == true && state.EX.Rt == state.MEM.Rt)			////////////////////////////
-				newState.MEM.Store_data = state.WB.Wrt_data;				//////////////////////////////
-			else newState.MEM.Store_data = state.EX.Read_data2;				////////////////////////////////////
-			newState.MEM.ALUresult = state.EX.Read_data1.to_ulong() + state.EX.Imm.to_ulong();	
+			if(state.EX.rd_mem == false && state.EX.wrt_mem == false)
+				newState.MEM.nop == true;
+			else{
+				if((state.MEM.wrt_enable == true)&&(state.MEM.nop==false) &&(state.EX.Rs == state.MEM.Wrt_reg_addr)){
+										// LOAD-ADD
+					state.EX.Read_data1 = state.WB.Wrt_data;
+					cout<<"\t\tLOAD MEM to EX1"<<endl;
+								
+				}
+				if((state.WB.wrt_enable == true)&&(state.WB.nop==false)&& (state.EX.Rs == state.WB.Wrt_reg_addr)){
+					
+										//LOAD-ADD
+						state.EX.Read_data1 = state.MEM.ALUresult;
+						cout<<"\t\tLOAD EX to EX"<<endl;
+				}		
+					
+				newState.MEM.ALUresult = state.EX.Read_data1.to_ulong() + signExtention(state.EX.Imm.to_ulong());	
+				
+			}
 		}
 	}
 	else
@@ -367,7 +402,7 @@ int main()
 
         /* --------------------- ID stage --------------------- */
 	if(state.ID.nop==false){
-		newState.EX.nop=false;
+		newState.EX.nop=state.ID.nop;
 		//cout<<"ID"<<endl;
 		switch(decodeType(state.ID.Instr)){
 					// R - TYPE
@@ -391,10 +426,14 @@ int main()
 				newState.EX.rd_mem = false;
 				newState.EX.Imm = ((state.ID.Instr.to_ulong()&0xFFFF));
 
-				if(state.EX.rd_mem == true && state.EX.Wrt_reg_addr == newState.EX.Rt){
+				if(state.EX.rd_mem == true && ((state.EX.Wrt_reg_addr == newState.EX.Rt)||(state.EX.Wrt_reg_addr == newState.EX.Rt))){
+					cout<<"\t\tSTALL"<<endl;
 					newState.ID=state.ID;
 					newState.IF=state.IF;
 					newState.EX.nop = true;
+					printState(newState, cycle++);
+					state=newState;
+					continue;
 				}
 				break;
 
@@ -416,7 +455,7 @@ int main()
 					newState.EX.Wrt_reg_addr = ((state.ID.Instr.to_ulong()>>16)&0x1F);
 				}
 				else if(((state.ID.Instr.to_ulong()>>26) & 0x3F) == 0x23){ 		
-					cout<<"lW"<<endl;
+					cout<<"LW"<<endl;
 					newState.EX.wrt_mem = false;
 					newState.EX.rd_mem = true;
 					newState.EX.wrt_enable = true;
@@ -427,9 +466,15 @@ int main()
 					newState.EX.wrt_mem = false;
 					newState.EX.rd_mem = false;
 					newState.EX.wrt_enable = false;
+					newState.EX.Wrt_reg_addr = ((state.ID.Instr.to_ulong()>>16)&0x1F);
 					if(newState.EX.Read_data1 != newState.EX.Read_data2){
-						newState.IF.PC = newState.IF.PC.to_ulong() + (signExtention(newState.EX.Imm)<<2);
+						newState.IF.PC = (unsigned long)((signExtention(newState.EX.Imm)<<2)+state.IF.PC.to_ulong());
+						state.IF.nop = true;
 						newState.EX.nop = true;
+						//cout<<cycle<<endl;
+        				///printState(newState, cycle++); //print states after executing cycle 0, cycle 1, cycle 2 ... 
+       					//state = newState;
+						//continue;
 					}
 				}
 				break;
@@ -447,7 +492,7 @@ int main()
         
         /* --------------------- IF stage --------------------- */
 	if(state.IF.nop==false){		
-		newState.ID.nop = false;		
+		newState.ID.nop = state.IF.nop;		
 		//cout<<"IF"<<endl;
 		newState.ID.Instr=myInsMem.readInstr(state.IF.PC);	// Instruction passed to next stage
 		newState.IF.PC = state.IF.PC.to_ulong()+4;		// PC updation
@@ -455,7 +500,7 @@ int main()
 			newState.IF = state.IF;
 			newState.IF.nop = true;
 			newState.ID.nop=true;
-			cout<<"HALT"<<endl;
+			//cout<<"HALT"<<endl;
 		}
 		//cout<<myInsMem.Instruction<<endl;
 	}
@@ -463,7 +508,7 @@ int main()
 		newState.ID.nop=true;					// NOP propagation
 	     
 
-        
+        cout<<cycle<<endl;
         printState(newState, cycle++); //print states after executing cycle 0, cycle 1, cycle 2 ... 
        
         state = newState; /*The end of the cycle and updates the current state with the values calculated in this cycle */ 
