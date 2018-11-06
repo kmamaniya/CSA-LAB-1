@@ -7,50 +7,50 @@ using namespace std;
 #define MemSize 1000 // memory size, in reality, the memory size should be 2^32, but for this lab, for the space resaon, we keep it as this large number, but the memory is still 32-bit addressable.
 
 struct IFStruct {
-    bitset<32>  PC=0;
-    bool        nop = false;  
+    bitset<32>  PC;
+    bool        nop;  
 };
 
 struct IDStruct {
-    bitset<32>  Instr=0;
-    bool        nop = true;  
+    bitset<32>  Instr;
+    bool        nop;  
 };
 
 struct EXStruct {
-    bitset<32>  Read_data1=0;
-    bitset<32>  Read_data2=0;
-    bitset<16>  Imm=0;
-    bitset<5>   Rs=0;
-    bitset<5>   Rt=0;
-    bitset<5>   Wrt_reg_addr=0;
-    bool        is_I_type=false;
-    bool        rd_mem=false;
-    bool        wrt_mem=false; 
-    bool        alu_op=true;     //1 for addu, lw, sw, 0 for subu 
-    bool        wrt_enable=false;
-    bool        nop = true;  
+    bitset<32>  Read_data1;
+    bitset<32>  Read_data2;
+    bitset<16>  Imm;
+    bitset<5>   Rs;
+    bitset<5>   Rt;
+    bitset<5>   Wrt_reg_addr;
+    bool        is_I_type;
+    bool        rd_mem;
+    bool        wrt_mem; 
+    bool        alu_op;     //1 for addu, lw, sw, 0 for subu 
+    bool        wrt_enable;
+    bool        nop;  
 };
 
 
 struct MEMStruct {
-    bitset<32>  ALUresult=0;
-    bitset<32>  Store_data=0;
-    bitset<5>   Rs=0;
-    bitset<5>   Rt=0;    
-    bitset<5>   Wrt_reg_addr=0;
-    bool        rd_mem=false;
-    bool        wrt_mem=false; 
-    bool        wrt_enable=false;    
-    bool        nop = true;    
+    bitset<32>  ALUresult;
+    bitset<32>  Store_data;
+    bitset<5>   Rs;
+    bitset<5>   Rt;    
+    bitset<5>   Wrt_reg_addr;
+    bool        rd_mem;
+    bool        wrt_mem; 
+    bool        wrt_enable;    
+    bool        nop;    
 };
 
 struct WBStruct {
-    bitset<32>  Wrt_data=0;
-    bitset<5>   Rs=0;
-    bitset<5>   Rt=0;     
-    bitset<5>   Wrt_reg_addr=0;
-    bool        wrt_enable=false;
-    bool        nop = true;     
+    bitset<32>  Wrt_data;
+    bitset<5>   Rs;
+    bitset<5>   Rt;     
+    bitset<5>   Wrt_reg_addr;
+    bool        wrt_enable;
+    bool        nop;     
 };
 
 struct stateStruct {
@@ -278,6 +278,78 @@ int main()
     INSMem myInsMem;
     DataMem myDataMem;
     stateStruct state,newState;
+
+//------- INITIALIZATION -----------------
+	state.IF.PC=0;
+	newState.IF.PC=0;
+	state.IF.nop = false;
+	newState.IF.nop = false;
+
+	state.ID.Instr=0;
+	newState.ID.Instr=0;
+	state.ID.nop = true;
+	newState.ID.nop = true;
+
+	state.EX.Read_data1=0;
+	newState.EX.Read_data1=0;
+	state.EX.Read_data2=0;
+	newState.EX.Read_data2=0;
+	state.EX.Imm=0;
+	newState.EX.Imm=0;
+	state.EX.Rs=0;
+	newState.EX.Rs=0;
+	state.EX.Rt=0;
+	newState.EX.Rt=0;
+	state.EX.Wrt_reg_addr=0;
+	newState.EX.Wrt_reg_addr=0;
+	state.EX.is_I_type=false;
+	newState.EX.is_I_type=false;
+	state.EX.rd_mem=false;
+	newState.EX.rd_mem=false;
+	state.EX.wrt_mem=false; 
+	newState.EX.wrt_mem=false; 
+	state.EX.alu_op=true;
+	newState.EX.alu_op=true;
+	state.EX.wrt_enable=false;
+	newState.EX.wrt_enable=false;
+	state.EX.nop = true; 
+	newState.EX.nop = true; 
+
+
+	state.MEM.ALUresult=0;
+	newState.MEM.ALUresult=0;
+	state.MEM.Store_data=0;
+	newState.MEM.Store_data=0;
+	state.MEM.Rs=0;
+	newState.MEM.Rs=0;
+	state.MEM.Rt=0; 
+	newState.MEM.Rt=0; 
+	state.MEM.Wrt_reg_addr=0;
+	newState.MEM.Wrt_reg_addr=0;
+	state.MEM.rd_mem=false;
+	newState.MEM.rd_mem=false;
+	state.MEM.wrt_mem=false;
+	newState.MEM.wrt_mem=false;
+	state.MEM.wrt_enable=false; 
+	newState.MEM.wrt_enable=false; 
+	state.MEM.nop = true;  
+	newState.MEM.nop = true;
+
+
+	state.WB.Wrt_data=0;
+	newState.WB.Wrt_data=0;
+	state.WB.Rs=0;
+	newState.WB.Rs=0;
+	state.WB.Rt=0;
+	newState.WB.Rt=0;
+	state.WB.Wrt_reg_addr=0;
+	newState.WB.Wrt_reg_addr=0;
+	state.WB.wrt_enable=false;
+	newState.WB.wrt_enable=false;
+	state.WB.nop = true;  
+	newState.WB.nop = true;  
+
+
     int cycle=0;         
     while (1) {
 
